@@ -4,10 +4,10 @@
 
 | Market | Examples | Ticker Format | Currency | Data Source |
 |--------|----------|---------------|----------|-------------|
-| **US Stocks** | NVDA, AAPL, MSFT | Pure letters | USD | yfinance (direct) |
-| **A-Shares (Shanghai)** | 600519, 601318 | 6xxxxx → {code}.SS | CNY | yfinance (.SS suffix) |
-| **A-Shares (Shenzhen)** | 000858, 300750 | 0xxxxx/3xxxxx → {code}.SZ | CNY | yfinance (.SZ suffix) |
-| **HK Stocks** | 0700.HK, 9988.HK | {code}.HK | HKD | yfinance (.HK suffix) |
+| **US Stocks** | NVDA, AAPL, MSFT | Pure letters | USD | yfinance |
+| **A-Shares (Shanghai)** | 600519, 601318 | 6xxxxx → {code}.SS | CNY | **AKShare** (akshare) |
+| **A-Shares (Shenzhen)** | 000858, 300750 | 0xxxxx/3xxxxx → {code}.SZ | CNY | **AKShare** (akshare) |
+| **HK Stocks** | 0700.HK, 9988.HK | {code}.HK | HKD | yfinance |
 
 ## Ticker Auto-Formatting Rules / 代码自动格式化规则
 
@@ -51,11 +51,12 @@ AAPL         →  AAPL           →  US
 - **Trading hours**: 9:30-16:00 ET
 
 ### A-Shares (China)
-- **Data coverage**: Basic financials available; some fields may be N/A
-- **yfinance data**: Price data good; fundamental data may be limited
+- **Data source**: AKShare (replaces yfinance for A-shares due to better data quality)
+- **Market data**: `scripts/fetch_ashare_market.py` — price, volume, MA, RSI, MACD, Bollinger Bands, turnover rate
+- **Fundamentals**: `scripts/fetch_ashare_fundamentals.py` — PE, PB, ROE, revenue, profit, balance sheet, cash flow
+- **Data coverage**: Comprehensive via East Money (东方财富) APIs
 - **News**: Search should include Chinese keywords for better coverage
 - **Trading hours**: 9:30-11:30, 13:00-15:00 CST
-- **Note**: yfinance A-share data quality varies; cross-reference with WebSearch
 
 ### HK Stocks
 - **Data coverage**: Generally good; some fields may differ from US format

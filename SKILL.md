@@ -41,8 +41,8 @@ cp "$SKILL_DIR"/agents/*.md .claude/agents/
 # 4. 复制数据脚本
 cp "$SKILL_DIR"/scripts/*.py scripts/
 
-# 5. 检查 yfinance 依赖
-pip3 install yfinance 2>/dev/null || pip install yfinance 2>/dev/null
+# 5. 检查依赖
+pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev/null
 
 # 6. 生成 AGENTS.md（如果不存在）
 # → 见下方 AGENTS.md ���板
@@ -108,8 +108,14 @@ claude --agent-teams
 
 ## Data Tools
 
-- scripts/fetch_market_data.py {TICKER} [DATE] [DAYS] — 股价和技术指标
-- scripts/fetch_fundamentals.py {TICKER} — 基本面财务数据
+**A 股数据路由**（6 位纯数字代码或 .SS/.SZ 后缀）：
+- scripts/fetch_ashare_market.py {CODE} [DATE] [DAYS] — A 股行情和技术指标（akshare）
+- scripts/fetch_ashare_fundamentals.py {CODE} — A 股基本面财务数据（akshare）
+
+**美股/港股数据路由**（纯字母或 .HK 后缀）：
+- scripts/fetch_market_data.py {TICKER} [DATE] [DAYS] — 股价和技术指标（yfinance）
+- scripts/fetch_fundamentals.py {TICKER} — 基本面财务数据（yfinance）
+
 - WebSearch — 新闻、舆情等实时数据
 
 ## Output
@@ -159,11 +165,17 @@ claude --agent-teams
 
 **Step 3**: 使用 `Agent` tool **并行派遣 5 个分析师**（单条消息中发起 5 个 Agent 调用，全部 `run_in_background: true`）：
 
-- **market-analyst**: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_market_data.py {TICKER} {DATE} 30` 获取数据，然后撰写完整的技术面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
+> **A 股数据路由规则**：当 TICKER 为 6 位纯数字（如 600519）或含 .SS/.SZ 后缀时，使用 `fetch_ashare_*.py` 脚本；否则使用 `fetch_market_data.py` / `fetch_fundamentals.py`。
+
+- **market-analyst**:
+  - A 股: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_ashare_market.py {TICKER} {DATE} 30` 获取数据，然后撰写完整的技术面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
+  - 美股/港股: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_market_data.py {TICKER} {DATE} 30` 获取数据，然后撰写完整的技术面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
 - **sentiment-analyst**: "分析 {TICKER}，分析日期 {DATE}。通过 WebSearch 搜索该股票的社交媒体情绪和分析师评级，撰写舆情分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
 - **company-news-analyst**: "分析 {TICKER}，分析日期 {DATE}。通过 WebSearch 搜索该公司最新新闻、行业动态、内部人交易，撰写公司新闻分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
 - **macro-analyst**: "分析 {TICKER}，分析日期 {DATE}。通过 WebSearch 搜索宏观经济、货币政策、产业政策相关信息，撰写宏观政策分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
-- **fundamentals-analyst**: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_fundamentals.py {TICKER}` 获取财务数据，然后撰写基本面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
+- **fundamentals-analyst**:
+  - A 股: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_ashare_fundamentals.py {TICKER}` 获取财务数据，然后撰写基本面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
+  - 美股/港股: "分析 {TICKER}，分析日期 {DATE}。请运行 `python3 scripts/fetch_fundamentals.py {TICKER}` 获取财务数据，然后撰写基本面分析报告。完成后用 SendMessage 将报告发送给 team-lead。"
 
 **等待所有 5 个分析师通过 mailbox 发回报告。**
 
