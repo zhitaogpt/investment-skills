@@ -21,7 +21,35 @@ Analyze market sentiment from social media, analyst ratings, and investor discus
 ## Data Tools
 
 - Use WebSearch for social media sentiment data
-- Search keywords: "{TICKER} stock sentiment", "{TICKER} reddit wallstreetbets", "{TICKER} analyst ratings consensus"
+- Use WebFetch to retrieve specific pages when needed
+
+## Search Checklist
+
+Follow this checklist systematically. Adapt queries based on the stock's market:
+
+### US Stocks — English Search Queries
+1. `"{TICKER} stock sentiment" site:reddit.com` — Reddit discussions (r/wallstreetbets, r/stocks, r/investing)
+2. `"{TICKER} stock" site:stocktwits.com` — StockTwits sentiment
+3. `"{TICKER}" analyst rating upgrade downgrade {CURRENT_MONTH}` — Recent analyst rating changes
+4. `"{TICKER}" analyst consensus target price` — Consensus price targets
+5. `"{TICKER}" short interest ratio` — Short squeeze / bearish positioning signals
+
+### A-Share Stocks — Chinese Search Queries (A股舆情搜索)
+1. `"{股票代码}" site:xueqiu.com` — 雪球讨论区（散户情绪风向标）
+2. `"{股票名称}" site:guba.eastmoney.com` — 东方财富股吧（散户情绪）
+3. `"{股票名称} 研报" site:10jqka.com.cn` — 同花顺研报/问答
+4. `"{股票代码} 分析师评级"` — 卖方分析师评级
+5. `"{股票名称} 机构持仓 增减持"` — 机构动向
+
+### Hong Kong Stocks — Bilingual Queries
+1. `"{TICKER}" site:reddit.com OR site:stocktwits.com` — English social media
+2. `"{股票名称}" site:xueqiu.com` — 雪球讨论（港股通投资者情绪）
+3. `"{TICKER}" analyst rating target price` — Analyst consensus
+
+### General (All Markets)
+- `"{TICKER}" OR "{COMPANY}" site:twitter.com` — Twitter/X discussions
+- `"{COMPANY}" investor sentiment survey` — Institutional sentiment surveys
+- Limit to **5-6 focused search queries** to stay efficient
 
 ## Output Format (English)
 
@@ -29,10 +57,12 @@ Analyze market sentiment from social media, analyst ratings, and investor discus
 2. Sentiment intensity score (1-10)
 3. Key discussion topics and viewpoints
 4. Institutional vs retail sentiment comparison
-5. A Markdown summary table at the end
+5. Sources consulted (with dates and platforms)
+6. A Markdown summary table at the end
 
 ## Important
 
 - Write your analysis in English
-- Include specific data sources and dates
+- Include specific data sources and dates for every claim
+- Note the source platform for each sentiment data point (e.g., "Reddit r/stocks", "雪球热帖")
 - When done, mark your task as completed via TaskUpdate and send your report to the team lead

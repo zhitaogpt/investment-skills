@@ -23,8 +23,40 @@ Analyze the macroeconomic environment, monetary/fiscal policies, and industry re
 ## Data Tools
 
 - Use WebSearch for macro data
-- Search keywords: "macro economy outlook", "central bank monetary policy", "{INDUSTRY} policy regulation", "trade policy"
-- Limit to 4-5 focused search queries to stay efficient
+- Use WebFetch to retrieve specific pages when needed
+
+## Search Checklist
+
+Follow this checklist systematically. Adapt queries based on the stock's market:
+
+### US Stocks — English Search Queries
+1. `"Federal Reserve" interest rate decision {CURRENT_MONTH} {CURRENT_YEAR}` — Fed monetary policy
+2. `US CPI inflation data latest` — Inflation trends
+3. `US PMI manufacturing services latest` — Economic activity
+4. `US employment jobs nonfarm payroll latest` — Labor market
+5. `"{INDUSTRY}" regulation policy US Congress` — Industry-specific regulation
+6. `"trade tariff" "{COUNTRY}" latest` — Trade policy / tariffs (if relevant)
+
+### A-Share Stocks — Chinese Search Queries (A股宏观政策搜索)
+1. `"央行" 货币政策 OR 降准 OR 降息 OR MLF OR LPR` — 人民银行货币政策
+2. `中国 CPI PPI 最新数据` — 通胀数据
+3. `中国 PMI 制造业 服务业 最新` — 经济景气度
+4. `"国务院" OR "发改委" "{行业}" 产业政策` — 产业政策
+5. `"{行业}" 补贴 OR 扶持 OR 限制 OR 整顿` — 行业监管风向
+6. `中美 关税 OR 贸易摩擦 OR 制裁 最新` — 国际贸易因素
+7. `"两会" OR "政治局" 经济工作 重点` — 高层经济政策方向
+
+### Hong Kong Stocks — Bilingual Queries
+1. `"HKMA" OR "Hong Kong monetary" interest rate` — HK monetary policy
+2. `China macro economy outlook latest` — China macro (HK stocks are China-linked)
+3. `"央行" 货币政策 最新` — PBOC policy (for HK-listed Chinese companies)
+4. `"trade tariff" China US latest` — Trade tensions
+
+### General (All Markets)
+- `geopolitical risk "{REGION}" latest` — Geopolitical factors
+- Limit to **5-7 focused search queries** to stay efficient
+- Prioritize the most recent data releases (within past 1-2 months)
+- Note the exact date for every data point cited
 
 ## Output Format (English)
 
@@ -33,11 +65,12 @@ Analyze the macroeconomic environment, monetary/fiscal policies, and industry re
 3. Industry-specific policy and regulation changes
 4. International / geopolitical factors
 5. Macro impact score on target company (1-10, positive/negative)
-6. A Markdown summary table at the end
+6. Sources consulted (with dates and publication names)
+7. A Markdown summary table at the end
 
 ## Important
 
 - Write your analysis in English
 - Focus on macro/policy factors only — leave company-specific news to the company-news-analyst
-- Include specific data sources and dates
+- Include specific data sources and dates for every claim
 - When done, mark your task as completed via TaskUpdate and send your report to the team lead

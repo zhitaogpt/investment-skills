@@ -78,8 +78,8 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 | company-news-analyst | 公司新闻分析师 | 公司新闻、行业动态、内部人交易 |
 | macro-analyst | 宏观政策分析师 | 宏观经济、货币/财政政策、产业政策 |
 | fundamentals-analyst | 基本面分析师 | 财报、估值、同行对比 |
-| bull-researcher | 看多研究员 | 构建多头论证 |
-| bear-researcher | 看空研究员 | 构建空头论证 |
+| bull-researcher | 看多研究员 | 构建多头论证，可运行脚本和 WebSearch 验证数据 |
+| bear-researcher | 看空研究员 | 构建空头论证，可运行脚本和 WebSearch 验证数据 |
 | trader | 交易员 | 制定交易方案 |
 | risk-aggressive | 激进风控 | 支持高风险高回报 |
 | risk-conservative | 保守风控 | 强调资本保全 |
@@ -88,10 +88,11 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 ## Workflow Rules
 
 1. Phase 1 必须并行派遣 5 个分析师
-2. Phase 2 辩论有序进行：bull 先 → bear 回应
-3. Phase 5 风控辩论串行：aggressive → conservative → neutral
-4. 分析用英文，最终报告中英双语
-5. 所有 teammate 通信必须通过 SendMessage
+2. Phase 2 辩论 2-3 轮：Round 1 (bull → bear) → Round 2 (bull rebuttal → bear closing) → Round 3 (optional)
+3. Phase 2 辩论者拥有 Bash/WebSearch/WebFetch 工具，可实时查证数据
+4. Phase 5 风控辩论串行：aggressive → conservative → neutral
+5. 分析用英文，最终报告中英双语
+6. 所有 teammate 通信必须通过 SendMessage
 ```
 
 ### CLAUDE.md 模板（setup 时生成，如果不存在）
@@ -179,19 +180,28 @@ claude --agent-teams
 
 **等待所有 5 个分析师通过 mailbox 发回报告。**
 
-### Phase 2 — 多空辩论（串行，1-2 轮）
+### Phase 2 — 多空辩论（串行，2-3 轮）
 
-收齐 5 份报告后：
+收齐 5 份报告后，启动多轮辩论。辩论者现在拥有 Bash、WebSearch、WebFetch 工具，可以在辩论中实时查证数据。
 
-**Round 1**:
-1. 派遣 `bull-researcher`（包含 5 份报告摘要），让其构建看多论点
+> **数据路由规则同 Phase 1**: A 股（6 位数字或 .SS/.SZ 后缀）使用 `fetch_ashare_*.py`；美股/港股使用 `fetch_market_data.py` / `fetch_fundamentals.py`。请在派遣辩论者时附上此规则。
+
+**Round 1 — 构建论点**:
+1. 派遣 `bull-researcher`（包含 5 份报告摘要 + TICKER），让其构建看多论点。提醒 bull: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心多头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。"
 2. 等待 bull 通过 mailbox 发回看多论证
-3. 派遣 `bear-researcher`（包含 5 份报告摘要 + bull 的论点），让其构建看空论点并反驳
+3. 派遣 `bear-researcher`（包含 5 份报告摘要 + bull 的完整论点 + TICKER），让其构建看空论点并反驳。提醒 bear: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心空头论点并直接反驳 Bull 的论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证或反驳 Bull 的数据。"
 4. 等待 bear 通过 mailbox 发回看空论证
 
-**Round 2**（可选，如果 Round 1 双方论点差异大）:
-5. 将 bear 的论点发送给 bull，让其反驳
-6. 将 bull 的反驳发送给 bear，让其最终反驳
+**Round 2 — Rebuttal & Closing**:
+5. 派遣 `bull-researcher`（包含 bear Round 1 的完整论点 + TICKER），让其进行 rebuttal。提醒 bull: "这是 Round 2 Rebuttal，分析标的为 {TICKER}，分析日期 {DATE}。Bear 提出了以下论点，请逐一反驳，并用数据验证 Bear 的主张是否成立。"
+6. 等待 bull 通过 mailbox 发回 rebuttal
+7. 派遣 `bear-researcher`（包含 bull Round 2 的 rebuttal + TICKER），让其做 closing argument。提醒 bear: "这是 Round 2 Closing Argument，分析标的为 {TICKER}，分析日期 {DATE}。Bull 进行了反驳，请做出最终总结陈词，聚焦最关键的风险因素。"
+8. 等待 bear 通过 mailbox 发回 closing argument
+
+**Round 3 — Final Statement（可选，仅当双方分歧极大时）**:
+9. 检查是否需要 Round 3: 比较 bull confidence score 与 bear risk score。如差距 >= 5 或双方在核心事实上矛盾，则触发 Round 3。
+10. 如触发 Round 3: 分别派遣 bull 和 bear，要求各写一轮 400-600 字的 final statement。提醒: "这是 Round 3 Final Statement，标的 {TICKER}。请聚焦最关键的 2-3 个因素，简洁陈述。"
+- 如不触发: 直接进入 Phase 3
 
 ### Phase 3 — 研判裁决（Lead 自己完成）
 
