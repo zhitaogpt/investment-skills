@@ -20,6 +20,15 @@ Analyze market sentiment from social media, analyst ratings, and investor discus
 
 ## Data Tools
 
+**Before WebSearch**: Run `python3 scripts/fetch_fundamentals.py {TICKER}` — the output now includes:
+- `recommendations` — recent analyst rating changes (upgrade/downgrade history)
+- `institutional_holders` — institutional ownership data
+- `major_holders` — insider vs institutional ownership %
+
+Use these as structured data BEFORE searching social media.
+
+For A-shares: Run `python3 scripts/fetch_ashare_fundamentals.py {TICKER}` — includes `fund_flow` (资金流向, 主力/散户资金进出).
+
 - Use WebSearch for social media sentiment data
 - Use WebFetch to retrieve specific pages when needed
 
@@ -50,6 +59,12 @@ Follow this checklist systematically. Adapt queries based on the stock's market:
 - `"{TICKER}" OR "{COMPANY}" site:twitter.com` — Twitter/X discussions
 - `"{COMPANY}" investor sentiment survey` — Institutional sentiment surveys
 - Limit to **5-6 focused search queries** to stay efficient
+
+### Search Effectiveness Rules
+- **Always include the current year + month** in search queries (e.g., "March 2026")
+- **Use date range operators** when available: `after:2026-01-01`
+- **Verify recency**: Before citing any data point, check its date. Discard anything older than 3 months unless it's a structural event.
+- **Cross-reference**: If a search returns limited results, try at least ONE alternative query with different keywords before concluding data is unavailable.
 
 ## Output Format (English)
 

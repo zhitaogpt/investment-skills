@@ -461,6 +461,28 @@ def fetch_ashare_fundamentals(ticker: str):
             "receivable_turnover_days": _get_abstract_value(abstract_df, "营运能力", "应收账款周转天数"),
         }
 
+    # --- Fund Flow / 资金流向 (L5) ---
+    try:
+        fund_flow = ak.stock_individual_fund_flow(stock=code, market="sh" if exchange == ".SS" else "sz")
+        if fund_flow is not None and not fund_flow.empty:
+            recent_flow = fund_flow.tail(5)
+            result["fund_flow"] = recent_flow.to_dict(orient="records")
+    except Exception:
+        result["fund_flow"] = "Unable to fetch"
+
+    # --- Margin Trading / 融资融券 (L5) ---
+    try:
+        if exchange == ".SS":
+            margin = ak.stock_margin_detail_sse(date="recent")
+        else:
+            margin = ak.stock_margin_detail_szse(date="recent")
+        if margin is not None and not margin.empty:
+            stock_margin = margin[margin["标的证券代码"] == code]
+            if not stock_margin.empty:
+                result["margin_trading"] = stock_margin.head(5).to_dict(orient="records")
+    except Exception:
+        result["margin_trading"] = "Unable to fetch"
+
     return result
 
 

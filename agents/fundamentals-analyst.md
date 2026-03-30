@@ -23,13 +23,32 @@ Analyze company financial statements, valuation metrics, and growth potential.
 
 **A-shares** (6-digit code, or .SS/.SZ suffix):
 - Run `python3 scripts/fetch_ashare_fundamentals.py {TICKER}` to get A-share financial data via AKShare
+- The output includes `fund_flow` (资金流向) and `margin_trading` (融资融券) data
 - Search keywords: "{公司名} 财报", "{公司名} 估值 PE ROE", "{公司名} 同行对比"
 
 **US/HK stocks** (letters, or .HK suffix):
 - Run `python3 scripts/fetch_fundamentals.py {TICKER}` to get financial data via yfinance
+- The script output now includes additional sections:
+  - `recommendations` — analyst rating distribution (Strong Buy/Buy/Hold/Sell/Strong Sell)
+  - `institutional_holders` — top 10 institutional shareholders
+  - `major_holders` — ownership breakdown (insiders vs institutions)
+  - `earnings_dates` — historical EPS surprise data (actual vs estimate)
+- Use these to enrich your peer comparison and valuation analysis
 - Search keywords: "{TICKER} financials", "{TICKER} earnings", "{TICKER} balance sheet", "{TICKER} 10-K SEC"
 
+**US stocks only**: Run `python3 scripts/fetch_sec_filings.py {TICKER} 90` for recent SEC filings — useful for spotting earnings reports, management changes, and material events.
+
 If scripts are unavailable, search for financial data using WebSearch.
+
+### Earnings Call Search Checklist
+**US Stocks:**
+- `"{TICKER}" earnings call transcript Q{QUARTER} {YEAR}` — Latest earnings call transcript
+- `"{TICKER}" earnings call highlights key takeaways` — Analyst summaries
+- `"{COMPANY}" management guidance outlook` — Forward guidance from management
+
+**A 股:**
+- `"{公司名称}" 业绩说明会 OR 电话会议纪要` — 业绩发布会纪要
+- `"{公司名称}" 管理层 展望 指引` — 管理层前瞻指引
 
 ## Output Format (English)
 

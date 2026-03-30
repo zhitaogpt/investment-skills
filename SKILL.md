@@ -35,23 +35,27 @@ mkdir -p .claude/agents/ scripts/ reports/
 # 2. 获取 skill 安装目录（此 SKILL.md 所在目录）
 SKILL_DIR="<this skill's directory>"
 
-# 3. 复制 Agent 定义文件
-cp "$SKILL_DIR"/agents/*.md .claude/agents/
+# 3. 链接 Agent 定义文件（目录级 symlink，新增 agent 自动生效）
+ln -sf "$SKILL_DIR/agents" .claude/agents
 
-# 4. 复制数据脚本
-cp "$SKILL_DIR"/scripts/*.py scripts/
+# 4. 链接数据脚本（目录级 symlink，新增脚本自动生效）
+ln -sf "$SKILL_DIR/scripts" scripts
 
 # 5. 检查依赖
 pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev/null
 
 # 6. 生成 AGENTS.md（如果不存在）
-# → 见下方 AGENTS.md ���板
+# → 见下方 AGENTS.md 模板
 
 # 7. 生成或更新 CLAUDE.md（如果不存在）
 # → 见下方 CLAUDE.md 模板
 ```
 
-**如果已存在**：跳过 setup，直接进入 Phase 1。
+⚠️ **首次 setup 后必须重启 session**：Agent 定义文件在 session 启动时注册，运行中新增的文件不会被识别为可用的 team agent 类型。完成 setup 后，告知用户：
+
+> "Setup 完成！Agent 定义文件和数据脚本已复制到项目中。**请重启 session（退出并重新进入 claude）后再运行 `/investor` 命令**，这样所有 agent 类型才能被正确识别。"
+
+**如果已存在**：跳过 setup，直接进入 Phase 1。所有 agent 类型在 session 启动时已注册，可正常使用 agent-teams 模式。
 
 ### AGENTS.md 模板（setup 时生成）
 
@@ -88,11 +92,12 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 ## Workflow Rules
 
 1. Phase 1 必须并行派遣 5 个分析师
-2. Phase 2 辩论 2-3 轮：Round 1 (bull → bear) → Round 2 (bull rebuttal → bear closing) → Round 3 (optional)
+2. Phase 2 辩论 2-3 轮：Round 1 spawn bull/bear → Round 2+ 用 **SendMessage** 给 idle agent 发送新轮指令（不 spawn 新 agent，不用 resume）
 3. Phase 2 辩论者拥有 Bash/WebSearch/WebFetch 工具，可实时查证数据
-4. Phase 5 风控辩论串行：aggressive → conservative → neutral
-5. 分析用英文，最终报告中英双语
-6. 所有 teammate 通信必须通过 SendMessage
+4. Phase 2 Round 2+ 的 SendMessage 只发送新增内容（对手论点 + 本轮任务），不重复前几轮上下文（idle agent 已保留完整上下文）
+5. Phase 5 风控辩论串行：aggressive → conservative → neutral
+6. 分析用英文，最终报告中英双语
+7. 所有 teammate 通信必须通过 SendMessage
 ```
 
 ### CLAUDE.md 模板（setup 时生成，如果不存在）
@@ -111,13 +116,14 @@ claude --agent-teams
 
 **A 股数据路由**（6 位纯数字代码或 .SS/.SZ 后缀）：
 - scripts/fetch_ashare_market.py {CODE} [DATE] [DAYS] — A 股行情和技术指标（akshare）
-- scripts/fetch_ashare_fundamentals.py {CODE} — A 股基本面财务数据（akshare）
+- scripts/fetch_ashare_fundamentals.py {CODE} — A 股基本面财务数据 + 资金流向 + 融资融券（akshare）
 
 **美股/港股数据路由**（纯字母或 .HK 后缀）：
 - scripts/fetch_market_data.py {TICKER} [DATE] [DAYS] — 股价和技术指标（yfinance）
-- scripts/fetch_fundamentals.py {TICKER} — 基本面财务数据（yfinance）
+- scripts/fetch_fundamentals.py {TICKER} — 基本面 + 分析师评级 + 内部人交易 + 机构持仓 + 新闻（yfinance）
+- scripts/fetch_sec_filings.py {TICKER} [DAYS] — SEC Filing（8-K/10-K/10-Q，仅美股）
 
-- WebSearch — 新闻、舆情等实时数据
+- WebSearch — 新闻、舆情、Earnings Call Transcript 等实时数据
 
 ## Output
 
@@ -186,21 +192,29 @@ claude --agent-teams
 
 > **数据路由规则同 Phase 1**: A 股（6 位数字或 .SS/.SZ 后缀）使用 `fetch_ashare_*.py`；美股/港股使用 `fetch_market_data.py` / `fetch_fundamentals.py`。请在派遣辩论者时附上此规则。
 
-**Round 1 — 构建论点**:
-1. 派遣 `bull-researcher`（包含 5 份报告摘要 + TICKER），让其构建看多论点。提醒 bull: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心多头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。"
+> **Agent 复用规则**:
+> - **Round 1**: 正常 spawn bull-researcher 和 bear-researcher（`run_in_background: true`）
+> - Agent 完成 Round 1 后通过 SendMessage 发回报告，然后自动进入 idle 状态
+> - **Round 2+**: 使用 `SendMessage` 向 idle 的 agent 发送新一轮指令（包含对手论点 + 本轮任务）
+> - Idle agent 收到消息后自动唤醒，保留 Round 1 的完整上下文（自己的搜索数据、论证、对手论点）
+> - **prompt 中不需要重复前几轮内容**，只需发送新增的对手论点和本轮指令
+> - **注意**: 不要使用 Agent tool 的 `resume` 参数或 spawn 新 agent，直接 SendMessage 即可
+
+**Round 1 — 构建论点**（spawn 新 agent）:
+1. 派遣 `bull-researcher`（包含 5 份报告摘要 + TICKER），让其构建看多论点。提醒 bull: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心多头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。完成后用 SendMessage 将报告发送给 team-lead。"
 2. 等待 bull 通过 mailbox 发回看多论证
-3. 派遣 `bear-researcher`（包含 5 份报告摘要 + bull 的完整论点 + TICKER），让其构建看空论点并反驳。提醒 bear: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心空头论点并直接反驳 Bull 的论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证或反驳 Bull 的数据。"
+3. 派遣 `bear-researcher`（包含 5 份报告摘要 + bull 的完整论点 + TICKER），让其构建看空论点并反驳。提醒 bear: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心空头论点并直接反驳 Bull 的论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证或反驳 Bull 的数据。完成后用 SendMessage 将报告发送给 team-lead。"
 4. 等待 bear 通过 mailbox 发回看空论证
 
-**Round 2 — Rebuttal & Closing**:
-5. 派遣 `bull-researcher`（包含 bear Round 1 的完整论点 + TICKER），让其进行 rebuttal。提醒 bull: "这是 Round 2 Rebuttal，分析标的为 {TICKER}，分析日期 {DATE}。Bear 提出了以下论点，请逐一反驳，并用数据验证 Bear 的主张是否成立。"
+**Round 2 — Rebuttal & Closing**（SendMessage 给 idle agent）:
+5. 用 `SendMessage` 向 bull-researcher 发送 bear 的 Round 1 论点 + rebuttal 指令: "这是 Round 2 Rebuttal。Bear 提出了以下论点: {bear_round1_argument}。请逐一反驳，并用数据验证 Bear 的主张是否成立。完成后用 SendMessage 将 rebuttal 发送给 team-lead。"
 6. 等待 bull 通过 mailbox 发回 rebuttal
-7. 派遣 `bear-researcher`（包含 bull Round 2 的 rebuttal + TICKER），让其做 closing argument。提醒 bear: "这是 Round 2 Closing Argument，分析标的为 {TICKER}，分析日期 {DATE}。Bull 进行了反驳，请做出最终总结陈词，聚焦最关键的风险因素。"
+7. 用 `SendMessage` 向 bear-researcher 发送 bull 的 Round 2 rebuttal + closing 指令: "这是 Round 2 Closing Argument。Bull 进行了以下反驳: {bull_round2_rebuttal}。请做出最终总结陈词，聚焦最关键的风险因素。完成后用 SendMessage 将 closing argument 发送给 team-lead。"
 8. 等待 bear 通过 mailbox 发回 closing argument
 
 **Round 3 — Final Statement（可选，仅当双方分歧极大时）**:
 9. 检查是否需要 Round 3: 比较 bull confidence score 与 bear risk score。如差距 >= 5 或双方在核心事实上矛盾，则触发 Round 3。
-10. 如触发 Round 3: 分别派遣 bull 和 bear，要求各写一轮 400-600 字的 final statement。提醒: "这是 Round 3 Final Statement，标的 {TICKER}。请聚焦最关键的 2-3 个因素，简洁陈述。"
+10. 如触发 Round 3: 分别用 `SendMessage` 向 bull 和 bear agent 发送 final statement 指令。提醒: "这是 Round 3 Final Statement。请聚焦最关键的 2-3 个因素，简洁陈述（400-600 字）。完成后用 SendMessage 发回。"
 - 如不触发: 直接进入 Phase 3
 
 ### Phase 3 — 研判裁决（Lead 自己完成）

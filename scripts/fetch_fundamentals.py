@@ -184,6 +184,57 @@ def fetch_fundamentals(ticker: str):
     except Exception:
         result["cashflow"] = "Unable to fetch"
 
+    # --- Analyst Recommendations (L3) ---
+    try:
+        recs = stock.recommendations
+        if recs is not None and not recs.empty:
+            recent = recs.tail(10)
+            result["recommendations"] = recent.to_dict(orient="records")
+    except Exception:
+        result["recommendations"] = "Unable to fetch"
+
+    # --- Insider Transactions (L1) ---
+    try:
+        insiders = stock.insider_transactions
+        if insiders is not None and not insiders.empty:
+            result["insider_transactions"] = insiders.head(15).to_dict(orient="records")
+    except Exception:
+        result["insider_transactions"] = "Unable to fetch"
+
+    # --- Institutional Holders (L3) ---
+    try:
+        inst = stock.institutional_holders
+        if inst is not None and not inst.empty:
+            result["institutional_holders"] = inst.head(10).to_dict(orient="records")
+    except Exception:
+        result["institutional_holders"] = "Unable to fetch"
+
+    # --- Major Holders (L3) ---
+    try:
+        majors = stock.major_holders
+        if majors is not None and not majors.empty:
+            result["major_holders"] = majors.to_dict(orient="records")
+    except Exception:
+        result["major_holders"] = "Unable to fetch"
+
+    # --- Earnings Dates with EPS surprise (L1/L2) ---
+    try:
+        edates = stock.earnings_dates
+        if edates is not None and not edates.empty:
+            result["earnings_dates"] = edates.head(8).to_dict(orient="records")
+    except Exception:
+        result["earnings_dates"] = "Unable to fetch"
+
+    # --- Recent News headlines (L4) ---
+    try:
+        news = stock.news
+        if news:
+            result["news"] = [{"title": n.get("title"), "publisher": n.get("publisher"),
+                               "link": n.get("link"), "date": n.get("providerPublishTime")}
+                              for n in news[:10]]
+    except Exception:
+        result["news"] = "Unable to fetch"
+
     return result
 
 
