@@ -4,18 +4,46 @@
 
 ## Quick Start
 
+### Claude Code (标准)
+
 ```bash
-# 1. Clone
+# 1. Clone 到 skills 目录
 git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/.claude/skills/investment-team
 
 # 2. Install dependencies
 pip install yfinance akshare
 
-# 3. Launch Claude Code and run
+# 3. 启动 Claude Code（必须带 --agent-teams）
+claude --agent-teams
+
+# 4. 运行
 /investor NVDA              # US stock
 /investor 600519            # A-share (贵州茅台)
 /investor 0700.HK           # HK stock (腾讯)
 ```
+
+### cfuse
+
+cfuse 的 skills 目录与标准 Claude Code 不同，需要创建软链接：
+
+```bash
+# 1. Clone 到任意位置
+git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/repos/investment-team-skill
+
+# 2. 创建软链接到 cfuse skills 目录
+ln -sf ~/repos/investment-team-skill ~/.codefuse/engine/cc/skills/investment-team
+
+# 3. Install dependencies
+pip install yfinance akshare
+
+# 4. 启动 cfuse（必须带 --agent-teams）
+cfuse --agent-teams
+
+# 5. 运行
+/investor NVDA
+```
+
+> **注意**: 启动时必须带 `--agent-teams` 参数，否则 Agent 间的 TeamCreate / SendMessage 通信机制不可用。
 
 First run auto-sets up agent definitions, data scripts, and config files. **Restart the session after first setup** so agent types get registered.
 
