@@ -1,45 +1,143 @@
 # Investment Team Skill / 多 Agent 投研团队
 
-> A Claude Code Skill that launches a **12-Agent investment research team** to analyze any stock in 6 phases and produce a comprehensive investment decision report.
+> A Claude Code Skill that launches a **12-Agent investment research team** to analyze any stock in 6 phases — with multi-round bull/bear debate and real-time data verification — producing a comprehensive investment decision report.
 
-```
-/investor NVDA
+## Quick Start
+
+```bash
+# 1. Clone
+git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/.claude/skills/investment-team
+
+# 2. Install dependencies
+pip install yfinance akshare
+
+# 3. Launch Claude Code and run
+/investor NVDA              # US stock
+/investor 600519            # A-share (贵州茅台)
+/investor 0700.HK           # HK stock (腾讯)
 ```
 
-One command. 12 AI agents. 6 phases. Full investment analysis.
+First run auto-sets up agent definitions, data scripts, and config files. **Restart the session after first setup** so agent types get registered.
 
 ## What It Does
 
-This skill simulates a professional investment bank / hedge fund research workflow:
+Simulates a professional investment research workflow with 12 AI agents:
 
 ```
-Phase 1: Data Collection (5 analysts in parallel)
-    ├── Market Analyst      → Technical indicators (MACD, RSI, BB, MA)
-    ├── Sentiment Analyst   → Social media & analyst ratings
-    ├── Company News        → News events, insider trading
-    ├── Macro Analyst       → GDP, rates, policy, geopolitics
-    └── Fundamentals        → Financials, valuation, peer comparison
+Phase 1: Data Collection — 5 analysts in parallel
+    ├── Market Analyst        → Price action, MACD, RSI, Bollinger Bands, MA
+    ├── Sentiment Analyst     → Social media mood, analyst ratings
+    ├── Company News Analyst  → Breaking news, insider trading, industry events
+    ├── Macro Analyst         → GDP, rates, fiscal/monetary policy, geopolitics
+    └── Fundamentals Analyst  → Financials, valuation, peer comparison, fund flow
 
-Phase 2: Bull vs Bear Debate (1-2 rounds)
-    ├── Bull Researcher     → Builds bullish case
-    └── Bear Researcher     → Builds bearish case & rebuttals
+Phase 2: Bull vs Bear Debate — 2-3 rounds with data verification
+    ├── Round 1: Bull builds case → Bear rebuts with counter-evidence
+    ├── Round 2: Bull rebuts Bear → Bear delivers closing argument
+    └── Round 3: (optional) Final statements if high divergence
+    └── Both sides can run scripts + WebSearch mid-debate to verify claims
 
-Phase 3: Research Judgment (Lead as Research Manager)
+Phase 3: Research Judgment — Lead synthesizes as Research Manager
 
-Phase 4: Trade Plan Design
-    └── Trader              → Entry/exit/sizing/stops
+Phase 4: Trade Plan
+    └── Trader → Entry price, stop loss, targets, position sizing, timeframe
 
-Phase 5: Risk Control Debate (3-way)
-    ├── Aggressive Risk     → Upside opportunities
-    ├── Conservative Risk   → Downside protection
-    └── Neutral Risk        → Balanced assessment
+Phase 5: Risk Control Debate — 3-way serial
+    ├── Aggressive Risk   → Upside opportunities, challenge conservative assumptions
+    ├── Conservative Risk → Downside protection, capital preservation
+    └── Neutral Risk      → Balanced risk-adjusted assessment
 
-Phase 6: Final Decision & Report (Lead as Portfolio Manager)
+Phase 6: Final Decision & Report — Lead as Portfolio Manager
+```
+
+## Supported Markets
+
+| Market | Format | Data Source | Examples |
+|--------|--------|-------------|----------|
+| US Stocks | Letters | yfinance + SEC EDGAR | NVDA, AAPL, GOOGL |
+| Shanghai A-Shares | 6-digit (6xx) | AKShare | 600519, 601318 |
+| Shenzhen A-Shares | 6-digit (0xx/3xx) | AKShare | 000858, 300750 |
+| HK Stocks | Number.HK | yfinance | 0700.HK, 9988.HK |
+
+```bash
+/investor NVDA                # US stock, default today
+/investor NVDA 2026-03-27     # US stock, specific date
+/investor 600519              # auto → 600519.SS
+/investor 000858              # auto → 000858.SZ
+/investor 0700.HK             # HK stock
+```
+
+## Data Sources
+
+| Source | Coverage | Data |
+|--------|----------|------|
+| **yfinance** | US / HK stocks | Price, technicals, financials, analyst recommendations, insider transactions, institutional holders, earnings dates, news |
+| **AKShare** | A-shares | Price, technicals, financials, fund flow (资金流向), margin trading (融资融券) |
+| **SEC EDGAR** | US stocks | 8-K, 10-K, 10-Q filings |
+| **WebSearch** | All markets | Real-time news, sentiment, earnings call transcripts, macro data |
+
+### Data Scripts
+
+```
+scripts/
+├── fetch_market_data.py          # US/HK price & technicals (yfinance)
+├── fetch_fundamentals.py         # US/HK fundamentals + ratings + insiders + news (yfinance)
+├── fetch_sec_filings.py          # SEC 8-K/10-K/10-Q filings (EDGAR API)
+├── fetch_ashare_market.py        # A-share price & technicals (AKShare)
+└── fetch_ashare_fundamentals.py  # A-share fundamentals + fund flow + margin (AKShare)
+```
+
+## Auto-Setup (First Run)
+
+On first `/investor` run in a new project, the skill automatically:
+
+1. Symlinks `agents/` → `.claude/agents/` (agent definitions)
+2. Symlinks `scripts/` → `scripts/` (data fetch scripts)
+3. Generates `AGENTS.md` (team orchestration guide)
+4. Generates `CLAUDE.md` (project context)
+5. Installs `yfinance` and `akshare` if needed
+
+After setup, **restart the session** — agent types are registered at session startup.
+
+## Architecture
+
+```
+┌───────────────────────────────────────────────────────────┐
+│              Phase 1: Data Collection (Parallel)          │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ ┌────────┐  │
+│  │Market  │ │Sentimnt│ │Company │ │ Macro │ │Fundmtl │  │
+│  │Analyst │ │Analyst │ │ News   │ │Analyst│ │Analyst │  │
+│  └───┬────┘ └───┬────┘ └───┬────┘ └──┬────┘ └───┬────┘  │
+│      └──────────┼──────────┼─────────┼──────────┘        │
+│                 ▼                                         │
+│        Phase 2: Bull vs Bear Debate (2-3 rounds)         │
+│      ┌──────────────────────────────┐                    │
+│      │  Bull ⟷ Bear (data-backed)  │                    │
+│      └─────────────┬────────────────┘                    │
+│                    ▼                                      │
+│        Phase 3: Research Judgment (Lead)                  │
+│                    ▼                                      │
+│        Phase 4: Trade Plan                               │
+│      ┌─────────────────────────┐                         │
+│      │        Trader           │                         │
+│      └─────────────┬───────────┘                         │
+│                    ▼                                      │
+│        Phase 5: Risk Control Debate                      │
+│   ┌────────────┐ ┌────────────┐ ┌───────────┐           │
+│   │ Aggressive │→│Conservative│→│  Neutral  │           │
+│   └────────────┘ └────────────┘ └─────┬─────┘           │
+│                                       ▼                   │
+│        Phase 6: Final Decision + Report                  │
+│      ┌─────────────────────────────┐                     │
+│      │   Lead (Portfolio Manager)  │                     │
+│      │   → Rating + Full Report    │                     │
+│      └─────────────────────────────┘                     │
+└───────────────────────────────────────────────────────────┘
 ```
 
 ## Sample Output
 
-Here's what a report looks like (excerpt):
+Reports are saved to `reports/{TICKER}_{DATE}.md`. See [examples/NVDA_sample_report.md](examples/NVDA_sample_report.md) for a complete example.
 
 ```markdown
 # Investment Decision Report: NVDA (NVIDIA Corporation)
@@ -61,151 +159,16 @@ Here's what a report looks like (excerpt):
 | Time Horizon       | 6-9 months                               |
 ```
 
-See [examples/NVDA_sample_report.md](examples/NVDA_sample_report.md) for a complete report.
-
-## Installation
-
-### 1. Clone to your skills directory
-
-```bash
-git clone https://github.com/YOUR_USERNAME/investment-team-skill.git ~/.claude/skills/investment-team
-```
-
-### 2. Install Python dependency
-
-```bash
-pip install yfinance
-```
-
-### 3. Start using it
-
-```bash
-# Start Claude Code with agent-teams mode
-claude --agent-teams
-
-# Then type:
-/investor NVDA
-```
-
-That's it. The skill handles everything else automatically on first run.
-
-## Usage
-
-### Basic Commands
-
-```bash
-/investor NVDA                # Analyze US stock (default: today's date)
-/investor NVDA 2026-03-27     # Analyze with specific date
-/investor 600519              # Analyze A-share (auto → 600519.SS, Kweichow Moutai)
-/investor 000858              # Analyze A-share (auto → 000858.SZ, Wuliangye)
-/investor 0700.HK             # Analyze HK stock (Tencent)
-```
-
-### Supported Markets
-
-| Market | Format | Examples |
-|--------|--------|----------|
-| US Stocks | Letters | NVDA, AAPL, MSFT, GOOGL |
-| Shanghai A-Shares | 6-digit (6xx) | 600519, 601318, 600036 |
-| Shenzhen A-Shares | 6-digit (0xx/3xx) | 000858, 300750, 000001 |
-| HK Stocks | Number.HK | 0700.HK, 9988.HK, 3690.HK |
-
-### Auto-Setup (First Run)
-
-On first use in a new project, the skill automatically:
-1. Creates `.claude/agents/` with 11 agent definitions
-2. Copies data scripts to `scripts/`
-3. Generates `AGENTS.md` and `CLAUDE.md`
-4. Installs yfinance if needed
-5. Creates `reports/` directory
-
-Subsequent runs skip setup and go directly to analysis.
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Phase 1: Data Collection (Parallel)       │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ ┌──────────┐  │
-│  │Market  │ │Sentimnt│ │Company │ │ Macro │ │Fundamntl │  │
-│  │Analyst │ │Analyst │ │ News   │ │Analyst│ │ Analyst  │  │
-│  └───┬────┘ └───┬────┘ └───┬────┘ └──┬────┘ └────┬─────┘  │
-│      └──────────┼──────────┼─────────┼───────────┘         │
-│                 ▼                                           │
-│           Phase 2: Bull vs Bear Debate                      │
-│         ┌────────────────────────┐                          │
-│         │   Bull ⟷ Bear Debate  │                          │
-│         └───────────┬────────────┘                          │
-│                     ▼                                       │
-│           Phase 3: Research Judgment (Lead)                  │
-│                     ▼                                       │
-│           Phase 4: Trade Plan                               │
-│         ┌───────────────────────┐                           │
-│         │       Trader          │                           │
-│         └───────────┬───────────┘                           │
-│                     ▼                                       │
-│           Phase 5: Risk Control Debate                      │
-│    ┌────────────┐ ┌──────────────┐ ┌───────────┐           │
-│    │ Aggressive │ │Conservative  │ │ Neutral   │           │
-│    └─────┬──────┘ └─────┬────────┘ └────┬──────┘           │
-│          └──────────────┼───────────────┘                   │
-│                         ▼                                   │
-│           Phase 6: Final Decision + Report                  │
-│         ┌───────────────────────────┐                       │
-│         │   Lead (Portfolio Mgr)    ��                       │
-│         │  → Final Rating + Report  │                       │
-│         └───────────────────────────┘                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Customization
-
-### Adding a New Agent
-
-1. Create a new `.md` file in `agents/` with frontmatter:
-   ```yaml
-   ---
-   name: your-agent-name
-   description: "Agent description"
-   tools: Bash, Read, Glob, Grep, SendMessage, TaskUpdate, TaskList, TaskGet
-   model: sonnet
-   ---
-   ```
-2. Define the agent's role, responsibilities, and output format
-3. Update `SKILL.md` workflow to include the new agent in the appropriate phase
-
-### Modifying Conviction Weights
-
-In the final report, the conviction score uses these default weights:
-
-| Factor | Default Weight |
-|--------|---------------|
-| Fundamental Strength | 30% |
-| Valuation Attractiveness | 20% |
-| Sentiment Support | 15% |
-| News/Catalyst Pipeline | 15% |
-| Technical Timing | 10% |
-| Risk/Reward Setup | 10% |
-
-Adjust these in `references/report-format.md` to match your investment style.
-
-## Data Sources
-
-- **Technical data**: yfinance (stock prices, technical indicators)
-- **Fundamental data**: yfinance (financials, valuation metrics)
-- **News & sentiment**: WebSearch (real-time web search)
-- **Macro data**: WebSearch (economic indicators, policy news)
-
 ## Requirements
 
-- Claude Code with `--agent-teams` support
+- Claude Code with agent-teams support
 - Python 3.8+
-- `yfinance` package (`pip install yfinance`)
-- Internet access (for WebSearch and yfinance data)
+- `yfinance` + `akshare` (`pip install yfinance akshare`)
+- Internet access (for WebSearch, yfinance, AKShare, SEC EDGAR)
 
 ## Disclaimer
 
-This tool generates AI-powered investment research simulations for **educational and research purposes only**. It does not constitute financial advice. Always consult a qualified financial advisor before making investment decisions. Past performance does not guarantee future results.
+This tool generates AI-powered investment research simulations for **educational and research purposes only**. It does not constitute financial advice. Always consult a qualified financial advisor before making investment decisions.
 
 ## License
 
