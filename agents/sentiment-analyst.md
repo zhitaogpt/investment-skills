@@ -1,7 +1,7 @@
 ---
 name: sentiment-analyst
 description: "舆情分析师 - 分析社交媒体情绪、分析师评级、散户与机构情绪对比"
-tools: Bash, Read, Glob, Grep, WebSearch, WebFetch, SendMessage, TaskUpdate, TaskList, TaskGet
+tools: Bash, Read, Glob, Grep, mcp__websearch__GoogleSearch, mcp__websearch__searchJumps, SendMessage, TaskUpdate, TaskList, TaskGet
 model: sonnet
 ---
 

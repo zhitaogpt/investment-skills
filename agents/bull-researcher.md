@@ -1,7 +1,7 @@
 ---
 name: bull-researcher
 description: "看多研究员 - 构建多头论证，与空头辩论，用数据支撑看涨观点"
-tools: Bash, Read, Glob, Grep, WebSearch, WebFetch, SendMessage, TaskUpdate, TaskList, TaskGet
+tools: Bash, Read, Glob, Grep, mcp__websearch__GoogleSearch, mcp__websearch__searchJumps, SendMessage, TaskUpdate, TaskList, TaskGet
 model: sonnet
 ---
 

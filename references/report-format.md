@@ -13,112 +13,109 @@
 ## Report Template
 
 ```
-# Investment Decision Report: {TICKER} ({COMPANY_NAME})
-## Date: {DATE}
+# 投资决策报告: {TICKER} ({COMPANY_NAME})
+## 日期: {DATE}
 
 ---
 
-### Rating: [Buy / Overweight / Hold / Underweight / Sell]
+### 评级: [买入 / 增持 / 持有 / 减持 / 卖出]
 
-> **一句话行动方案（中文）**
-> One-line action summary (English)
+> **一句话行动方案**
 
 ---
 
-### Executive Summary / 执行摘要
+### 执行摘要
 [简要行动方案：入场策略、仓位建议、关键风险水位、时间框架]
-[Brief action plan: entry strategy, position sizing, key risk levels, time horizon]
 
 ---
 
-### Investment Thesis / 投资论点
+### 投资论点
 [基于分析师报告和辩论的详细理由]
-[Detailed reasoning based on analyst reports and debates]
 
 ---
 
-### Analyst Reports Summary / 分析师报告摘要
+### 分析师报告摘要
 
-#### Technical Analysis (Score: X/10)
-[Key findings from market-analyst]
+#### 技术面分析 (评分: X/10)
+[来自 market-analyst 的关键发现]
 
-#### Sentiment Analysis (Score: X/10)
-[Key findings from sentiment-analyst]
+#### 舆情分析 (评分: X/10)
+[来自 sentiment-analyst 的关键发现]
 
-#### Company News (Score: X/10)
-[Key findings from company-news-analyst]
+#### 公司新闻 (评分: X/10)
+[来自 company-news-analyst 的关键发现]
 
-#### Macro & Policy (Score: X/10)
-[Key findings from macro-analyst]
+#### 宏观政策 (评分: X/10)
+[来自 macro-analyst 的关键发现]
 
-#### Fundamentals (Score: X/10)
-[Key findings from fundamentals-analyst]
-
----
-
-### Bull vs Bear Debate / 多空辩论
-
-#### Bull Case（看多论点）
-[Key bullish arguments with data]
-
-#### Bear Case（看空论点）
-[Key bearish arguments with data]
-
-#### Debate Resolution / 辩论结论
-[Who wins and why]
+#### 基本面分析 (评分: X/10)
+[来自 fundamentals-analyst 的关键发现]
 
 ---
 
-### Risk Assessment / 风险评估
+### 多空辩论
 
-#### Three-Way Risk Debate
+#### 看多论点（Bull Case）
+[带数据的看多核心论据]
 
-| Perspective | Position | Key Argument |
+#### 看空论点（Bear Case）
+[带数据的看空核心论据]
+
+#### 辩论结论
+[哪方更有说服力，为什么]
+
+---
+
+### 风险评估
+
+#### 三方风控辩论
+
+| 视角 | 立场 | 核心论据 |
 |---|---|---|
-| Aggressive | ... | ... |
-| Conservative | ... | ... |
-| Neutral (Adopted) | ... | ... |
+| 激进派 | ... | ... |
+| 保守派 | ... | ... |
+| 中性派（采纳） | ... | ... |
 
-#### Key Risk Factors
+#### 关键风险因素
 
-| Risk | Severity | Probability | Impact |
+| 风险 | 严重程度 | 发生概率 | 影响 |
 |---|---|---|---|
 | ... | ... | ... | ... |
 
 ---
 
-### Trade Recommendation / 交易建议
+### 交易建议
 
-| Parameter | Value |
+| 参数 | 值 |
 |---|---|
-| Ticker | {TICKER} |
-| Direction | Long / Short / Neutral |
-| Rating | [Rating] |
-| Entry Strategy | ... |
-| Stop Loss | ... |
-| Target 1 / 2 / 3 | ... |
-| Risk/Reward Ratio | ... |
-| Position Size | ... |
-| Time Horizon | ... |
+| 标的 | {TICKER} |
+| 方向 | 做多 / 做空 / 观望 |
+| 评级 | [评级] |
+| 入场策略 | ... |
+| 止损位 | ... |
+| 目标价 1 / 2 / 3 | ... |
+| 风险收益比 | ... |
+| 仓位比例 | ... |
+| 时间框架 | ... |
 
 ---
 
-### Conviction Level / 置信度
+### 置信度
 
-| Factor | Score | Weight | Weighted |
+| 因子 | 评分 | 权重 | 加权分 |
 |---|---|---|---|
-| Fundamental Strength | X/10 | 30% | ... |
-| Valuation Attractiveness | X/10 | 20% | ... |
-| Sentiment Support | X/10 | 15% | ... |
-| News/Catalyst Pipeline | X/10 | 15% | ... |
-| Technical Timing | X/10 | 10% | ... |
-| Risk/Reward Setup | X/10 | 10% | ... |
-| **Weighted Total** | | **100%** | **X/10** |
+| 基本面强度 | X/10 | 30% | ... |
+| 估值吸引力 | X/10 | 20% | ... |
+| 舆情支撑 | X/10 | 15% | ... |
+| 新闻/催化剂 | X/10 | 15% | ... |
+| 技术面时机 | X/10 | 10% | ... |
+| 风险收益结构 | X/10 | 10% | ... |
+| **加权总分** | | **100%** | **X/10** |
 ```
 
 ## Conventions / 写作规范
 
-1. **语言**: 分析师报告用英文撰写（便于数据搜索匹配），最终决策报告中英双语
+1. **语言**: 分析师报告用英文撰写（便于数据搜索匹配），**最终决策报告用中文撰写**
 2. **数字引用**: 所有数字需注明数据来源和日期
 3. **辩论风格**: 保持对话式，不要简单罗列
 4. **报告长度**: 最终报告约 2000-4000 词（不含附录）

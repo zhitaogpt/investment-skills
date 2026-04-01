@@ -1,7 +1,7 @@
 ---
 name: macro-analyst
 description: "宏观政策分析师 - 分析宏观经济、货币/财政政策、产业政策对标的的影响"
-tools: Bash, Read, Glob, Grep, SendMessage, TaskUpdate, TaskList, TaskGet
+tools: Bash, Read, Glob, Grep, mcp__websearch__GoogleSearch, mcp__websearch__searchJumps, SendMessage, TaskUpdate, TaskList, TaskGet
 model: sonnet
 ---
 

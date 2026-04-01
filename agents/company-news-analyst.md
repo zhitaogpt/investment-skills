@@ -1,7 +1,7 @@
 ---
 name: company-news-analyst
 description: "公司新闻分析师 - 追踪公司最新新闻、行业动态、内部人交易"
-tools: Bash, Read, Glob, Grep, SendMessage, TaskUpdate, TaskList, TaskGet
+tools: Bash, Read, Glob, Grep, mcp__websearch__GoogleSearch, mcp__websearch__searchJumps, SendMessage, TaskUpdate, TaskList, TaskGet
 model: sonnet
 ---
 

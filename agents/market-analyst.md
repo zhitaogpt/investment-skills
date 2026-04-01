@@ -1,7 +1,7 @@
 ---
 name: market-analyst
 description: "技术面分析师 - 分析股价走势、技术指标（MACD/RSI/布林带/均线）、支撑阻力位"
-tools: Bash, Read, Glob, Grep, SendMessage, TaskUpdate, TaskList, TaskGet
+tools: Bash, Read, Glob, Grep, mcp__websearch__GoogleSearch, mcp__websearch__searchJumps, SendMessage, TaskUpdate, TaskList, TaskGet
 model: sonnet
 ---
 

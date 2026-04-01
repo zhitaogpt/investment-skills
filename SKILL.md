@@ -95,8 +95,8 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 2. Phase 2 辩论 2-3 轮：Round 1 spawn bull/bear → Round 2+ 用 **SendMessage** 给 idle agent 发送新轮指令（不 spawn 新 agent，不用 resume）
 3. Phase 2 辩论者拥有 Bash/WebSearch/WebFetch 工具，可实时查证数据
 4. Phase 2 Round 2+ 的 SendMessage 只发送新增内容（对手论点 + 本轮任务），不重复前几轮上下文（idle agent 已保留完整上下文）
-5. Phase 5 风控辩论串行：aggressive → conservative → neutral
-6. 分析用英文，最终报告中英双语
+5. Phase 5 风控辩论**并行**：aggressive / conservative / neutral 同时派遣，各自独立评估
+6. 分析师报告用英文撰写（便于数据搜索匹配），**最终报告用中文撰写**
 7. 所有 teammate 通信必须通过 SendMessage
 ```
 
@@ -233,12 +233,18 @@ claude --agent-teams
 - 包含入场价格、止损位、止盈目标、仓位比例、时间框架
 - 完成后用 SendMessage 发送给 team-lead
 
-### Phase 5 — 风控辩论（串行，1 轮）
+### Phase 5 — 风控辩论（并行，1 轮）
 
-交易方案出来后，三方串行辩论：
-1. 派遣 `risk-aggressive`（包含交易方案），等待其 mailbox 回复
-2. 派遣 `risk-conservative`（包含交易方案 + 激进派观点），等待其 mailbox 回复
-3. 派遣 `risk-neutral`（包含交易方案 + 激进派 + 保守派观点），等待其 mailbox 回复
+交易方案出来后，三方**并行**辩论（单条消息中发起 3 个 Agent 调用，全部 `run_in_background: true`）：
+
+1. **并行派遣 3 个风控员**：
+   - `risk-aggressive`（包含交易方案 + 核心基本面数据 + 多空辩论结果）— 从激进角度评估，指出方案是否过于保守
+   - `risk-conservative`（包含交易方案 + 核心风险因素 + 多空辩论结果）— 从保守角度评估，指出方案风险是否被低估
+   - `risk-neutral`（包含交易方案 + 核心基本面 + 核心风险 + 多空辩论结果）— 平衡激进与保守，给出风险调整后最优方案
+
+2. **等待所有 3 个风控员通过 mailbox 发回评估**
+
+3. **Lead 综合三方观点**：在 Phase 6 中作为 Portfolio Manager 权衡三方建议，采纳中性风控的框架并根据激进/保守派的有效论点做出调整
 
 ### Phase 6 — 最终决策 & 报告
 
@@ -253,21 +259,21 @@ claude --agent-teams
 
 ## Final Report Format
 
-最终报告必须包含以下部分（中英双语）：
+最终报告必须**用中文撰写**，包含以下部分：
 
 ```markdown
-# Investment Decision Report: {TICKER} ({COMPANY_NAME})
-## Date: {DATE}
+# 投资决策报告: {TICKER} ({COMPANY_NAME})
+## 日期: {DATE}
 
-### Rating: [Buy / Overweight / Hold / Underweight / Sell]
+### 评级: [买入 / 增持 / 持有 / 减持 / 卖出]
 
-### Executive Summary / 执行摘要
-### Investment Thesis / 投资论点
-### Analyst Reports Summary / 分析师报告摘要
-### Bull vs Bear Debate / 多空辩论
-### Risk Assessment / 风险评估
-### Trade Recommendation / 交易建议
-### Conviction Level / 置信度
+### 执行摘要
+### 投资论点
+### 分析师报告摘要
+### 多空辩论
+### 风险评估
+### 交易建议
+### 置信度
 ```
 
 完整模板见 `references/report-format.md`。
