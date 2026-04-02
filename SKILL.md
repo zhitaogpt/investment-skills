@@ -92,7 +92,7 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 ## Workflow Rules
 
 1. Phase 1 必须并行派遣 5 个分析师
-2. Phase 2 辩论 2-3 轮：Round 1 spawn bull/bear → Round 2+ 用 **SendMessage** 给 idle agent 发送新轮指令（不 spawn 新 agent，不用 resume）
+2. Phase 2 辩论 2-3 轮，**每轮 bull/bear 并行**：Round 1 并行 spawn bull + bear → Round 2+ 并行用 **SendMessage** 给 idle agent 发送对手论点 + rebuttal 指令（不 spawn 新 agent，不用 resume）
 3. Phase 2 辩论者拥有 Bash/WebSearch/WebFetch 工具，可实时查证数据
 4. Phase 2 Round 2+ 的 SendMessage 只发送新增内容（对手论点 + 本轮任务），不重复前几轮上下文（idle agent 已保留完整上下文）
 5. Phase 5 风控辩论**并行**：aggressive / conservative / neutral 同时派遣，各自独立评估
@@ -186,35 +186,35 @@ claude --agent-teams
 
 **等待所有 5 个分析师通过 mailbox 发回报告。**
 
-### Phase 2 — 多空辩论（串行，2-3 轮）
+### Phase 2 — 多空辩论（并行，2-3 轮）
 
-收齐 5 份报告后，启动多轮辩论。辩论者现在拥有 Bash、WebSearch、WebFetch 工具，可以在辩论中实时查证数据。
+收齐 5 份报告后，启动多轮辩论。辩论者拥有 Bash、WebSearch、WebFetch 工具，可在辩论中实时查证数据。
 
 > **数据路由规则同 Phase 1**: A 股（6 位数字或 .SS/.SZ 后缀）使用 `fetch_ashare_*.py`；美股/港股使用 `fetch_market_data.py` / `fetch_fundamentals.py`。请在派遣辩论者时附上此规则。
 
 > **Agent 复用规则**:
-> - **Round 1**: 正常 spawn bull-researcher 和 bear-researcher（`run_in_background: true`）
+> - **Round 1**: 并行 spawn bull-researcher 和 bear-researcher（单条消息 2 个 Agent 调用，全部 `run_in_background: true`）
 > - Agent 完成 Round 1 后通过 SendMessage 发回报告，然后自动进入 idle 状态
-> - **Round 2+**: 使用 `SendMessage` 向 idle 的 agent 发送新一轮指令（包含对手论点 + 本轮任务）
-> - Idle agent 收到消息后自动唤醒，保留 Round 1 的完整上下文（自己的搜索数据、论证、对手论点）
+> - **Round 2+**: 使用 `SendMessage` 向 idle 的 agent **并行**发送新一轮指令（包含对手 Round 1 论点 + 本轮任务）
+> - Idle agent 收到消息后自动唤醒，保留 Round 1 的完整上下文
 > - **prompt 中不需要重复前几轮内容**，只需发送新增的对手论点和本轮指令
 > - **注意**: 不要使用 Agent tool 的 `resume` 参数或 spawn 新 agent，直接 SendMessage 即可
 
-**Round 1 — 构建论点**（spawn 新 agent）:
-1. 派遣 `bull-researcher`（包含 5 份报告摘要 + TICKER），让其构建看多论点。提醒 bull: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心多头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。完成后用 SendMessage 将报告发送给 team-lead。"
-2. 等待 bull 通过 mailbox 发回看多论证
-3. 派遣 `bear-researcher`（包含 5 份报告摘要 + bull 的完整论点 + TICKER），让其构建看空论点并反驳。提醒 bear: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心空头论点并直接反驳 Bull 的论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证或反驳 Bull 的数据。完成后用 SendMessage 将报告发送给 team-lead。"
-4. 等待 bear 通过 mailbox 发回看空论证
+**Round 1 — 构建论点**（并行 spawn 两个 agent）:
+1. **并行**派遣 `bull-researcher` 和 `bear-researcher`（单条消息中发起 2 个 Agent 调用，全部 `run_in_background: true`）：
+   - bull-researcher（包含 5 份报告摘要 + TICKER）: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心多头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。完成后用 SendMessage 将报告发送给 team-lead。"
+   - bear-researcher（包含 5 份报告摘要 + TICKER）: "这是 Round 1，分析标的为 {TICKER}，分析日期 {DATE}。请构建你的核心空头论点。你可以运行 fetch 脚本（见下方数据路由规则）或 WebSearch 来验证数据。完成后用 SendMessage 将报告发送给 team-lead。"
+2. 等待 bull 和 bear **都**通过 mailbox 发回论证
 
-**Round 2 — Rebuttal & Closing**（SendMessage 给 idle agent）:
-5. 用 `SendMessage` 向 bull-researcher 发送 bear 的 Round 1 论点 + rebuttal 指令: "这是 Round 2 Rebuttal。Bear 提出了以下论点: {bear_round1_argument}。请逐一反驳，并用数据验证 Bear 的主张是否成立。完成后用 SendMessage 将 rebuttal 发送给 team-lead。"
-6. 等待 bull 通过 mailbox 发回 rebuttal
-7. 用 `SendMessage` 向 bear-researcher 发送 bull 的 Round 2 rebuttal + closing 指令: "这是 Round 2 Closing Argument。Bull 进行了以下反驳: {bull_round2_rebuttal}。请做出最终总结陈词，聚焦最关键的风险因素。完成后用 SendMessage 将 closing argument 发送给 team-lead。"
-8. 等待 bear 通过 mailbox 发回 closing argument
+**Round 2 — Rebuttal**（并行 SendMessage 给 idle agent）:
+3. 收齐双方 Round 1 论点后，**并行**用 `SendMessage` 向两个 idle agent 发送 rebuttal 指令：
+   - 向 bull-researcher: "这是 Round 2 Rebuttal。Bear 在 Round 1 提出了以下论点: {bear_round1_argument}。请逐一反驳，并用数据验证 Bear 的主张是否成立。完成后用 SendMessage 将 rebuttal 发送给 team-lead。"
+   - 向 bear-researcher: "这是 Round 2 Rebuttal。Bull 在 Round 1 提出了以下论点: {bull_round1_argument}。请逐一反驳，并用数据验证 Bull 的主张是否成立。完成后用 SendMessage 将 rebuttal 发送给 team-lead。"
+4. 等待 bull 和 bear **都**通过 mailbox 发回 rebuttal
 
 **Round 3 — Final Statement（可选，仅当双方分歧极大时）**:
-9. 检查是否需要 Round 3: 比较 bull confidence score 与 bear risk score。如差距 >= 5 或双方在核心事实上矛盾，则触发 Round 3。
-10. 如触发 Round 3: 分别用 `SendMessage` 向 bull 和 bear agent 发送 final statement 指令。提醒: "这是 Round 3 Final Statement。请聚焦最关键的 2-3 个因素，简洁陈述（400-600 字）。完成后用 SendMessage 发回。"
+5. 检查是否需要 Round 3: 比较 bull confidence score 与 bear risk score。如差距 >= 5 或双方在核心事实上矛盾，则触发 Round 3。
+6. 如触发 Round 3: **并行**用 `SendMessage` 向 bull 和 bear agent 发送 final statement 指令。提醒: "这是 Round 3 Final Statement。请聚焦最关键的 2-3 个因素，简洁陈述（400-600 字）。完成后用 SendMessage 发回。"
 - 如不触发: 直接进入 Phase 3
 
 ### Phase 3 — 研判裁决（Lead 自己完成）
