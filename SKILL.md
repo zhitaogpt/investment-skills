@@ -24,9 +24,9 @@ user_invocable: true
 
 在开始分析之前，检测当前项目是否已完成 setup。执行以下检查：
 
-**检测条件**：`.claude/agents/market-analyst.md` 文件是否存在
+**检测条件**：使用 Bash 运行 `test -f .claude/agents/market-analyst.md && echo EXISTS || echo MISSING`（不要用 Glob，因为 Glob 对 symlink 不可靠）
 
-**如果不存在**（首次运行），自动执行 setup：
+**如果输出 MISSING**（首次运行），自动执行 setup：
 
 ```bash
 # 1. 创建目录
