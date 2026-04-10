@@ -54,8 +54,15 @@ If scripts are unavailable, search for financial data using WebSearch.
 
 1. Company overview and business model
 2. Key financial metrics (with specific numbers)
-3. Peer comparison
-4. Valuation analysis
+3. Peer comparison — search for 2-3 peers' PE, PB, ROE, revenue growth to compare
+4. **Valuation analysis (MUST calculate, not just report script output)**:
+   - **P/S ratio** = market_cap / annual_revenue
+   - **PEG ratio** = trailing_PE / earnings_growth_rate (use YoY net profit growth %)
+   - **Earnings yield** = EPS / current_price
+   - **FCF yield** ≈ operating_cashflow / market_cap (approximate if capex unavailable)
+   - **Simple DCF**: project 5-year FCF using revenue growth + current margins, discount at 10%, terminal growth 3%. State all assumptions explicitly.
+   - **Peer-relative valuation**: compare the stock's PE/PB/P/S against peers from step 3 — is it at a premium or discount? Is the premium justified by growth/ROE?
+   - **Fair value estimate**: synthesize DCF + peer-relative into a price range
 5. Fundamental composite score (1-10)
 6. A Markdown summary table of key financial metrics at the end
 
