@@ -161,7 +161,7 @@ mkdir -p reports/
 
 1. **Lead 综合所有信息**，以 **Portfolio Manager** 身份做出最终决策
 2. 生成最终投资决策报告，格式参考 `references/report-format.md`
-3. 保存报告到 `reports/{TICKER}_{DATE}.md`
+3. 保存报告到 `reports/{TICKER}_{中文名称}_{DATE}.md`
 4. 使用 `SendMessage` 向所有队友发送 shutdown 请求
 5. 等待确认后，使用 `TeamDelete` 清理团队
 6. 告知用户报告已生成
