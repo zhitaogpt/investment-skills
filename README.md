@@ -1,202 +1,118 @@
-# Investment Team Skill / 多 Agent 投研团队
+# Investment Research Skills / AI 投研分析技能集
 
-> A Claude Code Skill that launches a **12-Agent investment research team** to analyze any stock in 6 phases — with multi-round bull/bear debate and real-time data verification — producing a comprehensive investment decision report.
+> 两个 Claude Code Skill，覆盖从快速分析到深度研究的投研需求。
 
-## Quick Start
+## 两个 Skill
 
-### Claude Code (标准)
+| Skill | 命令 | 模式 | 适用场景 |
+|-------|------|------|----------|
+| **`/invest`** | `/invest NVDA` | 4-step 精简版 | 快速分析，单人+少量 agent |
+| **`/investor`** | `/investor NVDA` | 6-phase 团队版 | 深度研究，12-agent 协作 |
 
-```bash
-# 1. Clone 到 skills 目录
-git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/.claude/skills/investment-team
+### /invest — 快速投研分析
 
-# 2. Install dependencies
-pip install yfinance akshare
+4 步完成：Lead 跑数据 → 5 并行研究 agent → 多空辩论 → 决策报告
 
-# 3. 启动 Claude Code（必须带 --agent-teams）
-claude --agent-teams
-
-# 4. 运行
-/investor NVDA              # US stock
-/investor 600519            # A-share (贵州茅台)
-/investor 0700.HK           # HK stock (腾讯)
+```
+/invest NVDA              # 美股
+/invest 600519            # A 股（→ 600519.SS）
+/invest 0700.HK           # 港股
 ```
 
-### cfuse
+### /investor — 12-Agent 投研团队
 
-cfuse 的 skills 目录与标准 Claude Code 不同，需要创建软链接：
+6 阶段流水线：5 分析师 → 多空辩论(2-3轮) → 研判 → 交易方案 → 3方风控辩论 → 最终报告
+
+```
+/investor NVDA 2026-03-27
+/investor 600519
+```
+
+> `/investor` 需要 `--agent-teams` 模式启动。
+
+## 项目结构
+
+```
+investment/
+├── .claude/
+│   ├── agents/                        # Agent 定义（13个，session 启动时自动注册）
+│   │   ├── bull.md                    # ← /invest
+│   │   ├── bear.md                    # ← /invest
+│   │   ├── market-analyst.md          # ← /investor
+│   │   ├── sentiment-analyst.md       # ← /investor
+│   │   ├── company-news-analyst.md    # ← /investor
+│   │   ├── macro-analyst.md           # ← /investor
+│   │   ├── fundamentals-analyst.md    # ← /investor
+│   │   ├── bull-researcher.md         # ← /investor
+│   │   ├── bear-researcher.md         # ← /investor
+│   │   ├── trader.md                  # ← /investor
+│   │   ├── risk-aggressive.md         # ← /investor
+│   │   ├── risk-conservative.md       # ← /investor
+│   │   └── risk-neutral.md            # ← /investor
+│   ├── skills/
+│   │   ├── invest/                    # /invest skill（4-step 精简版，自包含）
+│   │   │   ├── SKILL.md
+│   │   │   └── references/
+│   │   │       ├── report-format.md
+│   │   │       └── agent-prompts.md
+│   │   └── investor/                  # /investor skill（12-agent 团队版，自包含）
+│   │       ├── SKILL.md
+│   │       └── references/
+│   │           ├── report-format.md
+│   │           ├── workflow.md
+│   │           └── markets.md
+│   └── settings.local.json
+├── scripts/                           # 共享数据脚本
+│   ├── fetch_market_data.py           # 美股/港股行情（yfinance）
+│   ├── fetch_fundamentals.py          # 美股/港股基本面（yfinance）
+│   ├── fetch_sec_filings.py           # SEC 8-K/10-K/10-Q（EDGAR）
+│   ├── fetch_ashare_market.py         # A 股行情（AKShare）
+│   └── fetch_ashare_fundamentals.py   # A 股基本面（AKShare）
+├── reports/                           # 报告输出目录
+├── examples/
+│   └── NVDA_sample_report.md
+├── LEGAL.md
+└── LICENSE
+```
+
+## 安装
 
 ```bash
-# 1. Clone 到任意位置
-git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/repos/investment-team-skill
+# 1. Clone
+git clone git@code.alipay.com:bujue.zzt/investment-team-skill.git ~/repos/investment
 
-# 2. 创建软链接到 cfuse skills 目录
-ln -sf ~/repos/investment-team-skill ~/.codefuse/engine/cc/skills/investment-team
-
-# 3. Install dependencies
+# 2. 安装依赖
 pip install yfinance akshare
 
-# 4. 启动 cfuse（必须带 --agent-teams）
+# 3. 启动（/investor 需要 --agent-teams）
 cfuse --agent-teams
-
-# 5. 运行
-/investor NVDA
 ```
 
-> **注意**: 启动时必须带 `--agent-teams` 参数，否则 Agent 间的 TeamCreate / SendMessage 通信机制不可用。
+Skills 和 agents 已在 `.claude/` 目录下，session 启动时自动注册。
 
-First run auto-sets up agent definitions, data scripts, and config files. **Restart the session after first setup** so agent types get registered.
+## 支持市场
 
-## What It Does
+| 市场 | 输入格式 | 数据源 | 示例 |
+|------|----------|--------|------|
+| 美股 | 字母代码 | yfinance + SEC EDGAR | NVDA, AAPL |
+| 上交所 A 股 | 6位(6xx) | AKShare | 600519, 601318 |
+| 深交所 A 股 | 6位(0xx/3xx) | AKShare | 000858, 300750 |
+| 港股 | 数字.HK | yfinance | 0700.HK, 9988.HK |
 
-Simulates a professional investment research workflow with 12 AI agents:
+## 报告示例
 
-```
-Phase 1: Data Collection — 5 analysts in parallel
-    ├── Market Analyst        → Price action, MACD, RSI, Bollinger Bands, MA
-    ├── Sentiment Analyst     → Social media mood, analyst ratings
-    ├── Company News Analyst  → Breaking news, insider trading, industry events
-    ├── Macro Analyst         → GDP, rates, fiscal/monetary policy, geopolitics
-    └── Fundamentals Analyst  → Financials, valuation, peer comparison, fund flow
+报告输出到 `reports/{TICKER}_{DATE}.md`。完整示例见 [examples/NVDA_sample_report.md](examples/NVDA_sample_report.md)。
 
-Phase 2: Bull vs Bear Debate — 2-3 rounds with data verification
-    ├── Round 1: Bull builds case → Bear rebuts with counter-evidence
-    ├── Round 2: Bull rebuts Bear → Bear delivers closing argument
-    └── Round 3: (optional) Final statements if high divergence
-    └── Both sides can run scripts + WebSearch mid-debate to verify claims
-
-Phase 3: Research Judgment — Lead synthesizes as Research Manager
-
-Phase 4: Trade Plan
-    └── Trader → Entry price, stop loss, targets, position sizing, timeframe
-
-Phase 5: Risk Control Debate — 3-way serial
-    ├── Aggressive Risk   → Upside opportunities, challenge conservative assumptions
-    ├── Conservative Risk → Downside protection, capital preservation
-    └── Neutral Risk      → Balanced risk-adjusted assessment
-
-Phase 6: Final Decision & Report — Lead as Portfolio Manager
-```
-
-## Supported Markets
-
-| Market | Format | Data Source | Examples |
-|--------|--------|-------------|----------|
-| US Stocks | Letters | yfinance + SEC EDGAR | NVDA, AAPL, GOOGL |
-| Shanghai A-Shares | 6-digit (6xx) | AKShare | 600519, 601318 |
-| Shenzhen A-Shares | 6-digit (0xx/3xx) | AKShare | 000858, 300750 |
-| HK Stocks | Number.HK | yfinance | 0700.HK, 9988.HK |
-
-```bash
-/investor NVDA                # US stock, default today
-/investor NVDA 2026-03-27     # US stock, specific date
-/investor 600519              # auto → 600519.SS
-/investor 000858              # auto → 000858.SZ
-/investor 0700.HK             # HK stock
-```
-
-## Data Sources
-
-| Source | Coverage | Data |
-|--------|----------|------|
-| **yfinance** | US / HK stocks | Price, technicals, financials, analyst recommendations, insider transactions, institutional holders, earnings dates, news |
-| **AKShare** | A-shares | Price, technicals, financials, fund flow (资金流向), margin trading (融资融券) |
-| **SEC EDGAR** | US stocks | 8-K, 10-K, 10-Q filings |
-| **WebSearch** | All markets | Real-time news, sentiment, earnings call transcripts, macro data |
-
-### Data Scripts
-
-```
-scripts/
-├── fetch_market_data.py          # US/HK price & technicals (yfinance)
-├── fetch_fundamentals.py         # US/HK fundamentals + ratings + insiders + news (yfinance)
-├── fetch_sec_filings.py          # SEC 8-K/10-K/10-Q filings (EDGAR API)
-├── fetch_ashare_market.py        # A-share price & technicals (AKShare)
-└── fetch_ashare_fundamentals.py  # A-share fundamentals + fund flow + margin (AKShare)
-```
-
-## Auto-Setup (First Run)
-
-On first `/investor` run in a new project, the skill automatically:
-
-1. Symlinks `agents/` → `.claude/agents/` (agent definitions)
-2. Symlinks `scripts/` → `scripts/` (data fetch scripts)
-3. Generates `AGENTS.md` (team orchestration guide)
-4. Generates `CLAUDE.md` (project context)
-5. Installs `yfinance` and `akshare` if needed
-
-After setup, **restart the session** — agent types are registered at session startup.
-
-## Architecture
-
-```
-┌───────────────────────────────────────────────────────────┐
-│              Phase 1: Data Collection (Parallel)          │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ ┌────────┐  │
-│  │Market  │ │Sentimnt│ │Company │ │ Macro │ │Fundmtl │  │
-│  │Analyst │ │Analyst │ │ News   │ │Analyst│ │Analyst │  │
-│  └───┬────┘ └───┬────┘ └───┬────┘ └──┬────┘ └───┬────┘  │
-│      └──────────┼──────────┼─────────┼──────────┘        │
-│                 ▼                                         │
-│        Phase 2: Bull vs Bear Debate (2-3 rounds)         │
-│      ┌──────────────────────────────┐                    │
-│      │  Bull ⟷ Bear (data-backed)  │                    │
-│      └─────────────┬────────────────┘                    │
-│                    ▼                                      │
-│        Phase 3: Research Judgment (Lead)                  │
-│                    ▼                                      │
-│        Phase 4: Trade Plan                               │
-│      ┌─────────────────────────┐                         │
-│      │        Trader           │                         │
-│      └─────────────┬───────────┘                         │
-│                    ▼                                      │
-│        Phase 5: Risk Control Debate                      │
-│   ┌────────────┐ ┌────────────┐ ┌───────────┐           │
-│   │ Aggressive │→│Conservative│→│  Neutral  │           │
-│   └────────────┘ └────────────┘ └─────┬─────┘           │
-│                                       ▼                   │
-│        Phase 6: Final Decision + Report                  │
-│      ┌─────────────────────────────┐                     │
-│      │   Lead (Portfolio Manager)  │                     │
-│      │   → Rating + Full Report    │                     │
-│      └─────────────────────────────┘                     │
-└───────────────────────────────────────────────────────────┘
-```
-
-## Sample Output
-
-Reports are saved to `reports/{TICKER}_{DATE}.md`. See [examples/NVDA_sample_report.md](examples/NVDA_sample_report.md) for a complete example.
-
-```markdown
-# Investment Decision Report: NVDA (NVIDIA Corporation)
-## Date: 2026-03-25
-
-### Rating: Overweight
-
-> 逐步增加仓位，利用技术面超卖机会分批建仓
-> Gradually increase position, taking advantage of technical oversold conditions
-
-### Trade Recommendation
-| Parameter          | Value                                    |
-|--------------------|------------------------------------------|
-| Direction          | Long                                     |
-| Entry Strategy     | 3 tranches: $175 (33%), $171 (33%), $165 |
-| Stop Loss          | $155.00 (hard stop, ~11% below current)  |
-| Target             | $230-265 (31-51% upside)                 |
-| Risk/Reward Ratio  | 1:3.0                                    |
-| Time Horizon       | 6-9 months                               |
-```
-
-## Requirements
+## 依赖
 
 - Claude Code with agent-teams support
 - Python 3.8+
-- `yfinance` + `akshare` (`pip install yfinance akshare`)
-- Internet access (for WebSearch, yfinance, AKShare, SEC EDGAR)
+- `yfinance` + `akshare`
+- Internet access
 
 ## Disclaimer
 
-This tool generates AI-powered investment research simulations for **educational and research purposes only**. It does not constitute financial advice. Always consult a qualified financial advisor before making investment decisions.
+AI-powered investment research for **educational and research purposes only**. Not financial advice.
 
 ## License
 

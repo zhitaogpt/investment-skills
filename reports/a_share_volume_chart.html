@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股沪深两市每日成交额 (2026年3月-4月)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1923;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #ffffff;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #8899aa;
+    margin-bottom: 20px;
+  }
+  .chart-container {
+    width: 95%;
+    max-width: 1100px;
+    background: #1a2733;
+    border-radius: 12px;
+    padding: 24px 20px 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: #223344;
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 120px;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: #8899aa;
+    margin-bottom: 4px;
+  }
+  .stat-card .value {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .stat-card .value.high { color: #f44336; }
+  .stat-card .value.low { color: #4caf50; }
+  .stat-card .value.avg { color: #ff9800; }
+  .stat-card .value.current { color: #2196f3; }
+  .footer {
+    font-size: 11px;
+    color: #556677;
+    margin-top: 16px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>A股沪深两市每日成交额</h1>
+<div class="subtitle">2026年3月2日 - 4月17日 | 数据来源：财联社、东方财富、上交所</div>
+
+<div class="chart-container">
+  <canvas id="volumeChart"></canvas>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="label">最高成交额</div>
+    <div class="value high" id="maxVal">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">最低成交额</div>
+    <div class="value low" id="minVal">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">日均成交额</div>
+    <div class="value avg" id="avgVal">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">最新成交额</div>
+    <div class="value current" id="curVal">-</div>
+  </div>
+</div>
+
+<div class="footer">注：标注 * 的日期为综合估算值，其余为公开报道实际数据。4月4-6日为清明节假期。</div>
+
+<script>
+const rawData = [
+  { date: '3/2',  vol: 3.02, note: '重回3万亿' },
+  { date: '3/3',  vol: 3.13, note: '连续第2日破3万亿' },
+  { date: '3/4',  vol: 2.37, note: '大幅缩量' },
+  { date: '3/5',  vol: 2.39, note: '' },
+  { date: '3/6',  vol: 2.20, note: '' },
+  { date: '3/9',  vol: 2.65, note: '放量' },
+  { date: '3/10', vol: 2.42, note: '' },
+  { date: '3/11', vol: 2.51, note: '' },
+  { date: '3/12', vol: 2.50, note: '' },
+  { date: '3/13', vol: 2.40, note: '' },
+  { date: '3/16', vol: 2.33, note: '' },
+  { date: '3/17', vol: 2.21, note: '' },
+  { date: '3/18', vol: 2.06, note: '逼近2万亿关口' },
+  { date: '3/19', vol: 2.10, note: '估算*' },
+  { date: '3/20', vol: 2.30, note: '' },
+  { date: '3/23', vol: 2.43, note: '放量' },
+  { date: '3/24', vol: 2.18, note: '' },
+  { date: '3/25', vol: 2.18, note: '' },
+  { date: '3/26', vol: 1.95, note: '跌破2万亿' },
+  { date: '3/27', vol: 1.85, note: '年内新低' },
+  { date: '3/30', vol: 1.90, note: '估算*' },
+  { date: '3/31', vol: 2.01, note: '' },
+  { date: '4/1',  vol: 2.01, note: '四月开门红' },
+  { date: '4/2',  vol: 1.84, note: '' },
+  { date: '4/3',  vol: 1.80, note: '节前缩量' },
+  // 4/4-4/6 清明节
+  { date: '4/7',  vol: 1.60, note: '阶段低点' },
+  { date: '4/8',  vol: 2.45, note: '史诗级反攻' },
+  { date: '4/9',  vol: 2.15, note: '' },
+  { date: '4/10', vol: 2.30, note: '' },
+  { date: '4/11', vol: 2.10, note: '估算*' },
+  { date: '4/13', vol: 2.15, note: '' },
+  { date: '4/14', vol: 2.38, note: '尾盘急涨' },
+  { date: '4/15', vol: 2.43, note: '' },
+  { date: '4/16', vol: 2.30, note: '连续7日破2万亿' },
+  { date: '4/17', vol: 2.40, note: '预计值' },
+];
+
+const labels = rawData.map(d => d.date);
+const values = rawData.map(d => d.vol);
+
+// Stats
+const max = Math.max(...values);
+const min = Math.min(...values);
+const avg = (values.reduce((a, b) => a + b, 0) / values.length);
+const cur = values[values.length - 1];
+document.getElementById('maxVal').textContent = max.toFixed(2) + ' 万亿';
+document.getElementById('minVal').textContent = min.toFixed(2) + ' 万亿';
+document.getElementById('avgVal').textContent = avg.toFixed(2) + ' 万亿';
+document.getElementById('curVal').textContent = cur.toFixed(2) + ' 万亿';
+
+// Colors: red above 2.5, orange 2.0-2.5, green below 2.0
+const pointColors = values.map(v => v >= 2.5 ? '#f44336' : v >= 2.0 ? '#ff9800' : '#4caf50');
+const pointRadius = rawData.map(d =>
+  d.note && !d.note.includes('估算') ? 5 : 3
+);
+
+const ctx = document.getElementById('volumeChart').getContext('2d');
+
+// Gradient fill
+const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(33, 150, 243, 0.35)');
+gradient.addColorStop(0.5, 'rgba(33, 150, 243, 0.10)');
+gradient.addColorStop(1, 'rgba(33, 150, 243, 0.0)');
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: '沪深两市成交额（万亿元）',
+      data: values,
+      borderColor: '#2196f3',
+      borderWidth: 2.5,
+      backgroundColor: gradient,
+      fill: true,
+      tension: 0.3,
+      pointBackgroundColor: pointColors,
+      pointBorderColor: pointColors,
+      pointRadius: pointRadius,
+      pointHoverRadius: 7,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 2.2,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2733',
+        borderColor: '#334455',
+        borderWidth: 1,
+        titleColor: '#ffffff',
+        bodyColor: '#ccddee',
+        padding: 12,
+        displayColors: false,
+        callbacks: {
+          title: (items) => {
+            const idx = items[0].dataIndex;
+            return `2026年${rawData[idx].date}`;
+          },
+          label: (item) => {
+            const idx = item.dataIndex;
+            const d = rawData[idx];
+            let lines = [`成交额: ${d.vol.toFixed(2)} 万亿`];
+            if (d.note) lines.push(d.note);
+            return lines;
+          },
+        }
+      },
+      annotation: undefined,
+    },
+    scales: {
+      x: {
+        grid: {
+          color: 'rgba(255,255,255,0.05)',
+        },
+        ticks: {
+          color: '#8899aa',
+          font: { size: 11 },
+          maxRotation: 45,
+          minRotation: 30,
+        },
+        border: { color: '#334455' },
+      },
+      y: {
+        min: 1.2,
+        max: 3.4,
+        grid: {
+          color: 'rgba(255,255,255,0.06)',
+        },
+        ticks: {
+          color: '#8899aa',
+          font: { size: 12 },
+          callback: v => v.toFixed(1) + ' 万亿',
+          stepSize: 0.2,
+        },
+        border: { color: '#334455' },
+      }
+    }
+  },
+  plugins: [{
+    // Draw 2万亿 reference line
+    id: 'refLine',
+    afterDraw(chart) {
+      const yScale = chart.scales.y;
+      const ctx = chart.ctx;
+      const y2 = yScale.getPixelForValue(2.0);
+      const y3 = yScale.getPixelForValue(3.0);
+
+      // 2万亿 line
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 152, 0, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, y2);
+      ctx.lineTo(chart.chartArea.right, y2);
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = 'rgba(255, 152, 0, 0.6)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('2万亿', chart.chartArea.right - 42, y2 - 6);
+
+      // 3万亿 line
+      ctx.strokeStyle = 'rgba(244, 67, 54, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, y3);
+      ctx.lineTo(chart.chartArea.right, y3);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(244, 67, 54, 0.6)';
+      ctx.fillText('3万亿', chart.chartArea.right - 42, y3 - 6);
+
+      ctx.restore();
+    }
+  }]
+});
+</script>
+</body>
+</html>
