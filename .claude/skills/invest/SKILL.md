@@ -1,13 +1,15 @@
 ---
 name: invest
-description: "任务驱动的投研分析技能 — 4 步完成数据收集、研究、辩论、决策，自动生成中文投资报告。使用场景：(1) 用户输入 /invest TICKER 分析股票 (2) 用户要求分析某只股票的投资价值 (3) 用户需要投资决策报告。支持 A 股(600519)、美股(NVDA)、港股(0700.HK)。"
+description: "任务驱动的投研分析技能 — 3 步完成数据研究、多空辩论、决策报告，自动生成中文投资报告。使用场景：(1) 用户输入 /invest TICKER 分析股票 (2) 用户要求分析某只股票的投资价值 (3) 用户需要投资决策报告。支持 A 股(600519)、美股(NVDA)、港股(0700.HK)。"
 ---
 
 # invest — 任务驱动的投研分析
 
 > `/invest TICKER [DATE]`
 
-4 步完成：Lead 跑数据 → 并行研究 → 多空辩论 → 决策报告
+3 步完成：Lead 研究数据 → 多空辩论 → 决策报告
+
+**哲学：tasks = agents。只有需要独立对抗视角的辩论才 spawn agent，其余 Lead 自己完成。**
 
 ## Command Format
 
@@ -40,11 +42,13 @@ pip3 install yfinance akshare 2>/dev/null || pip install yfinance akshare 2>/dev
 
 > Agent 定义（`bull.md`、`bear.md`）在 `.claude/agents/` 目录中，session 启动时自动注册。
 
-## 4-Step Workflow
+## 3-Step Workflow
 
-### Step 1: 数据收集（Lead 直接执行）
+### Step 1: 数据收集 & 信息研究（Lead 直接完成）
 
-不需要 agent。Lead 自己跑脚本。
+Lead 自己跑脚本 + WebSearch，不 spawn agent。
+
+**1a. 跑数据脚本**
 
 **A 股**：
 ```bash
@@ -59,53 +63,56 @@ python3 scripts/fetch_fundamentals.py {TICKER}
 python3 scripts/fetch_sec_filings.py {TICKER} 30   # 仅美股
 ```
 
-Lead 从脚本输出中提取 `{data_summary}`：
+从脚本输出中提取 `{data_summary}`：
 - 当前价、涨跌幅、RSI/MACD/均线
 - PE/PB、营收增速、利润增速、负债率
 - 分析师评级、目标价、内部人交易、机构持仓
 
-### Step 2: 信息研究（5 并行 agents）
+**1b. WebSearch 信息研究**
 
-单条消息并行派遣 5 个 agent（全部 `run_in_background: true`），使用 `.claude/agents/` 中的 agent 定义（`subagent_type` 参数）。
+用 `mcp__websearch__GoogleSearch` 顺序搜索以下 6 个维度，汇总为 `{research_summary}`：
 
-Agent 定义文件包含完整的角色 persona、搜索清单、输出格式和引用规则。dispatch prompt **只需传递上下文数据**，不要重复 agent 定义中已有的内容。
+| 维度 | 搜索关键词（示例） |
+|------|------------------|
+| 公司新闻 | "{TICKER} 最新新闻 2026"、"{公司名} 行业动态"、"{公司名} 内部人交易" |
+| 市场情绪 | "{TICKER} 分析师评级 2026"、"{公司名} 机构持仓"、"{TICKER} 散户情绪" |
+| 宏观政策 | "{行业} 政策 2026"、"{行业} 宏观经济"、"{行业} 监管动态" |
+| 竞对分析 | "{行业} 竞争格局 2026"、"{公司名} 竞争对手"、"{细分赛道} 市占率"、"{公司名} vs {同行名}" |
+| 技术面 | "{TICKER} 技术分析"、"{TICKER} 支撑阻力"、"{TICKER} 趋势" |
+| 财务估值 | "{TICKER} 估值分析"、"{TICKER} DCF"、"{公司名} 同行对比" |
 
-| Agent | subagent_type | dispatch prompt 传递的上下文 |
-|-------|---------------|---------------------------|
-| A — 公司行业 | `company-news-analyst` | `{data_summary}` + TICKER + DATE |
-| B — 市场情绪 | `sentiment-analyst` | `{data_summary}` + TICKER + DATE + 脚本路由说明 |
-| C — 宏观政策 | `macro-analyst` | `{data_summary}` + TICKER + DATE + 行业名称 |
-| D — 技术面 | `market-analyst` | `{data_summary}` + TICKER + DATE + Step 1 行情数据（如有） |
-| E — 财务估值 | `fundamentals-analyst` | `{data_summary}` + TICKER + DATE + Step 1 基本面数据（如有） |
+搜索规范：
+- 始终包含当前年份+月份
+- 首次搜索结果有限时至少尝试一次替代关键词
+- 丢弃超过 3 个月的数据（除非是结构性事件）
+- 所有引用标注来源
 
-**dispatch prompt 模板**（以 Agent E 为例）：
-```
-分析 {TICKER}，分析日期 {DATE}。
+**竞对分析要点**（搜索后 Lead 自己整理）：
 
-## 关键数据
-{data_summary}
+1. **行业竞争格局**：市场集中度（CR3/CR5）、寡头还是分散、进入壁垒高低
+2. **直接竞对画像**：识别 2-5 家核心竞争对手，逐家梳理：
+   - 业务重叠度（哪些产品/市场直接竞争）
+   - 规模对比（营收、市值、市占率）
+   - 优劣势对比（技术、渠道、成本、品牌）
+3. **标的护城河评估**：相对竞对，标的的差异化优势和可持续性
+4. **替代威胁**：技术路线替代风险（如新能源替代传统能源）、商业模式替代风险
+5. **竞争趋势**：行业是走向集中还是分散？标的市占率在提升还是被侵蚀？
 
-## Step 1 基本面数据
-{fundamentals_data_from_script}
+**1c. 完成估值计算**
 
-请按照你的 agent 定义完成完整的财务分析和估值计算。
+基于脚本数据和搜索结果，Lead 自己完成三层估值：
+1. **SOTP 分部估值**（多元业务公司）：每个板块找同行 PE，分别估值
+2. **DCF 现金流折现**：逐年 FCF 折现表、终值计算、扣除净负债、三场景对比
+3. **相对估值**：同行 PE/PB 对比
+4. **估值交叉验证**：三种方法并列对比是否收敛
 
-**重要：不要写任何文件（不要用 Write 工具保存报告）。直接将分析结果作为文本返回即可。最终报告由 Lead 统一生成。**
-```
+### Step 2: 多空辩论（2 agents，2-3 轮）
 
-**数据路由补充说明**（A 股 vs 美股，附在 Agent B/D/E 的 prompt 中）：
-- A 股: 脚本用 `fetch_ashare_*.py`
-- 美股/港股: 脚本用 `fetch_market_data.py` / `fetch_fundamentals.py`
-
-等待 5 个 agent 全部返回。
-
-### Step 3: 多空辩论（2 并行 agents，2-3 轮）
-
-辩论者使用自定义 agent 类型 `bull` / `bear`，拥有 Bash + WebSearch，可在辩论中实时查证数据。
+辩论者使用 `.claude/agents/` 中的 `bull` / `bear` agent 定义，拥有 Bash + WebSearch，可在辩论中实时查证数据。
 
 **Round 1 — 构建论点**：
 单条消息并行 spawn `bull` 和 `bear`（`run_in_background: true`，命名为 `bull` 和 `bear`），prompt 包含：
-- `{data_summary}` + 5 份研究报告
+- `{data_summary}` + `{research_summary}` + 估值计算结果
 - 数据脚本路由说明
 - 指令：构建 3-5 个核心论点，每个有数据支撑，引用来源
 
@@ -127,20 +134,20 @@ Agent 定义文件包含完整的角色 persona、搜索清单、输出格式和
 - 每个维度判定：**Bull 胜 / Bear 胜 / 平局** + 关键理由
 - 给出综合判断
 
-### Step 4: 决策 & 报告（Lead 完成）
+### Step 3: 决策 & 报告（Lead 完成）
 
 Lead 一次性完成以下所有内容：
 
-**4a. 研判**：投资方向 + 3-5 条关键理由 + 置信度 (1-10)
+**3a. 研判**：投资方向 + 3-5 条关键理由 + 置信度 (1-10)
 
-**4b. 交易方案**（分批建仓 + 触发条件）：
+**3b. 交易方案**（分批建仓 + 触发条件）：
 - **分批建仓策略**: 分 2-3 批，标注每批的价格区间、仓位比例、触发条件
 - **触发条件式止损**: 不仅设价格止损，还列出基本面止损条件（如：净利增速低于 X%、合约价涨幅不足 X%、大股东公告减持 >X% 股份）
 - **触发条件式止盈**: TP1 减仓比例 + 止损上移、TP2 清仓、极端估值清仓
 - **催化剂时间线**: 列出未来 3-6 个月关键事件及预期影响
 - **最大回撤估算**: 悲观情景（PE 压缩 + 增速放缓）的大致股价底
 
-**4c. 风险评估**（Lead 自己从三个角度审视，详细版）：
+**3c. 风险评估**（Lead 从三个角度审视）：
 
 | 风控角色 | 评估内容 |
 |---------|---------|
@@ -150,7 +157,7 @@ Lead 一次性完成以下所有内容：
 
 **Portfolio Manager 综合**：采纳中性派框架，给出核心风险排序、风险缓释措施。
 
-**4d. 写报告**：中文，保存到 `reports/{TICKER}_{中文名称}_{DATE}.md`
+**3d. 写报告**：中文，保存到 `reports/{TICKER}_{中文名称}_{DATE}.md`
 
 报告格式见 `references/report-format.md`。置信度评分使用 **8 维模型**（基本面强度、增长确定性、估值吸引力、内部人信号、舆情支撑、新闻/催化剂、技术面时机、风险收益结构）。
 
